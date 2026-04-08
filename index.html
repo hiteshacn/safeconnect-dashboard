@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeConnect Dashboard · Kumbh Mela 2025</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+
+    <!-- React 18 (UMD) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- Babel standalone (transpiles JSX in the browser) -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+
+    <style>
+      /* Prevent flash of unstyled content */
+      #root { min-height: 100vh; }
+      body  { margin: 0; padding: 0; }
+
+      /* Loading spinner shown until React mounts */
+      #loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #F4F0EA;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        gap: 16px;
+      }
+      #loader-logo {
+        font-size: 42px;
+      }
+      #loader-text {
+        font-size: 18px;
+        font-weight: 800;
+        font-family: Georgia, serif;
+        background: linear-gradient(90deg, #E8620A, #F97316);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      #loader-sub {
+        font-size: 11px;
+        color: #9C8070;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      #loader-spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid #FED7AA;
+        border-top-color: #E8620A;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Shown while Babel + React initialise -->
+    <div id="loader">
+      <div id="loader-logo">🛡️</div>
+      <div id="loader-text">SafeConnect</div>
+      <div id="loader-sub">Kumbh Mela 2025 · Prayagraj</div>
+      <div id="loader-spinner"></div>
+    </div>
+
+    <!-- React mounts here -->
+    <div id="root"></div>
+
+    <!-- Load & transpile the JSX component -->
+    <script type="text/babel" src="./safeconnect-dashboard.jsx" data-type="module"></script>
+
+    <!-- Mount after Babel finishes transpiling -->
+    <script>
+      // Babel fires a custom event when it's done; use that to hide the loader
+      // and mount React. We use a small polling fallback for safety.
+      function mountApp() {
+        const loader = document.getElementById("loader");
+        if (loader) loader.style.display = "none";
+
+        if (window.__SafeConnectMounted) return;
+        window.__SafeConnectMounted = true;
+
+        // The JSX file's default export is available via Babel's module system.
+        // We import it dynamically after Babel has processed it.
+        // (Babel standalone registers modules on window.Babel.availablePlugins etc.,
+        //  but the default export is attached to the module — accessed below.)
+        const App = window.__SC_APP__;
+        if (!App) {
+          // Retry in 100ms if the module hasn't registered yet
+          setTimeout(mountApp, 100);
+          return;
+        }
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(React.createElement(App));
+      }
+
+      // Poll until the app component is ready
+      const poll = setInterval(() => {
+        if (window.__SC_APP__) {
+          clearInterval(poll);
+          mountApp();
+        }
+      }, 80);
+
+      // Hard timeout — show error if not loaded in 15 s
+      setTimeout(() => {
+        clearInterval(poll);
+        if (!window.__SafeConnectMounted) {
+          document.getElementById("loader").innerHTML =
+            "<div style='color:#DC2626;font-family:sans-serif;padding:40px;text-align:center'>" +
+            "<div style='font-size:32px'>⚠️</div>" +
+            "<div style='font-size:18px;font-weight:700;margin-top:12px'>Failed to load dashboard</div>" +
+            "<div style='font-size:13px;color:#6B5A4E;margin-top:8px'>Please refresh or check the browser console.</div>" +
+            "</div>";
+        }
+      }, 15000);
+    </script>
+
+    <!-- Adapter: wrap default export so the polling above can find it -->
+    <script type="text/babel">
+      // This tiny snippet runs after safeconnect-dashboard.jsx is transpiled.
+      // It re-exports the default App onto window so our mount script can grab it.
+      import App from "./safeconnect-dashboard.jsx";
+      window.__SC_APP__ = App;
+    </script>
+
+  </body>
+</html>
